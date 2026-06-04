@@ -1,0 +1,15 @@
+# ══════════════════════════════════════════════════════════════════════════
+#  Requirements — Traffic Violation Detection Pipeline (VS Code)
+#  Install:  pip install -r requirements.txt
+# ══════════════════════════════════════════════════════════════════════════
+
+ultralytics>=8.0.0
+supervision>=0.18.0
+opencv-python>=4.8.0
+easyocr>=1.7.0
+numpy>=1.24.0
+torch>=2.0.0          # CPU version is fine locally; GPU optional
+torchvision>=0.15.0
+flask>=3.0.0                # REST API server (app.py)
+flask-cors>=4.0.0           # CORS header support for dashboard (app.py)
+PyQt6

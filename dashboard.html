@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ViolationIQ — Traffic Enforcement Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#07090f;--bg1:#0c0f18;--bg2:#111520;--bg3:#171c2c;--bg4:#1e2538;--bg5:#252d45;
+  --b:rgba(255,255,255,.055);--b2:rgba(255,255,255,.09);--b3:rgba(255,255,255,.14);
+  --txt:#e4eaf6;--txt2:#7d8799;--txt3:#414a5e;
+  --cyan:#00d4ff;--cD:rgba(0,212,255,.10);--cG:rgba(0,212,255,.22);
+  --red:#ff3f5c;--rD:rgba(255,63,92,.10);--rG:rgba(255,63,92,.2);
+  --amber:#ffb020;--aD:rgba(255,176,32,.10);--aG:rgba(255,176,32,.2);
+  --green:#00e49a;--gD:rgba(0,228,154,.10);--gG:rgba(0,228,154,.2);
+  --orange:#ff6b3d;
+  --font:'Outfit',sans-serif;--mono:'DM Mono',monospace;
+  --r:10px;--rL:15px;--sw:252px;--th:56px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+button{font-family:var(--font);cursor:pointer;border:none;outline:none}
+input,select{font-family:var(--font);outline:none}
+
+.shell{display:grid;grid-template-columns:var(--sw) 1fr;grid-template-rows:var(--th) 1fr;height:100vh;overflow:hidden}
+
+/* TOPBAR */
+.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;background:var(--bg1);border-bottom:1px solid var(--b);position:relative;z-index:100}
+.topbar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cG),transparent)}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-icon{width:32px;height:32px;border-radius:8px;background:var(--cD);border:1px solid var(--cG);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.brand-icon::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--cG),transparent)}
+.brand-icon svg{width:16px;height:16px;fill:var(--cyan);position:relative;z-index:1}
+.brand-name{font-size:15px;font-weight:700;letter-spacing:-.025em}
+.brand-name em{color:var(--cyan);font-style:normal}
+.brand-sub{font-size:10px;color:var(--txt3);letter-spacing:.07em;text-transform:uppercase;margin-top:1px}
+.topbar-center{display:flex;align-items:center;gap:8px;background:var(--bg2);
+  border:1px solid var(--b);border-radius:8px;padding:6px 14px;font-size:12px;color:var(--txt3)}
+.live-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.live-dot.on{background:var(--green);animation:pulse 2.2s infinite}
+.live-dot.off{background:var(--txt3)}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 var(--gG)}60%{opacity:.7;box-shadow:0 0 0 5px transparent}}
+.tb-actions{display:flex;align-items:center;gap:8px}
+.tb-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;
+  font-size:12px;color:var(--txt2);background:var(--bg2);border:1px solid var(--b);transition:.15s}
+.tb-btn:hover{border-color:var(--b2);color:var(--txt)}
+.tb-btn svg{width:13px;height:13px}
+.avatar{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0d2a44,#051520);
+  border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;color:var(--cyan);letter-spacing:.04em}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg1);border-right:1px solid var(--b);padding:18px 0 0;
+  overflow-y:auto;display:flex;flex-direction:column}
+.sg-label{font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--txt3);padding:12px 18px 5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;
+  font-size:13px;color:var(--txt2);border-left:2px solid transparent;transition:.14s;user-select:none}
+.nav-item:hover{color:var(--txt);background:var(--bg2)}
+.nav-item.active{color:var(--cyan);background:var(--cD);border-left-color:var(--cyan);font-weight:500}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.55;transition:.14s}
+.nav-item.active .nav-icon,.nav-item:hover .nav-icon{opacity:1}
+.nb{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;font-family:var(--mono)}
+.nb-r{background:var(--rD);color:var(--red);border:1px solid var(--rG)}
+.nb-g{background:var(--gD);color:var(--green);border:1px solid var(--gG)}
+.sidebar-footer{margin-top:auto;padding:14px 16px;border-top:1px solid var(--b)}
+.sys-card{background:var(--bg2);border:1px solid var(--b);border-radius:var(--r);padding:10px 12px}
+.sys-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--txt3);padding:3px 0}
+.sys-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sys-dot.ok{background:var(--green)}.sys-dot.err{background:var(--red)}
+
+/* MAIN */
+.main{overflow-y:auto;background:var(--bg);padding:22px;display:flex;flex-direction:column;gap:18px}
+.page{display:none;flex-direction:column;gap:18px;animation:pgIn .22s ease}
+.page.active{display:flex}
+@keyframes pgIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+
+/* PAGE HEADER */
+.ph{display:flex;align-items:flex-start;justify-content:space-between}
+.ph-title{font-size:21px;font-weight:700;letter-spacing:-.03em}
+.ph-title em{color:var(--cyan);font-style:normal}
+.ph-sub{font-size:12px;color:var(--txt3);margin-top:3px}
+.ph-actions{display:flex;gap:8px}
+
+/* CARD */
+.card{background:var(--bg2);border:1px solid var(--b);border-radius:var(--rL);padding:18px 20px;position:relative;overflow:hidden}
+.ct{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--txt3);
+  margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ct::before{content:'';width:3px;height:12px;border-radius:2px;background:var(--cyan);flex-shrink:0}
+
+/* STAT CARDS */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.sc{background:var(--bg2);border:1px solid var(--b);border-radius:var(--rL);padding:16px 18px;
+  position:relative;overflow:hidden;transition:.2s;cursor:default}
+.sc:hover{transform:translateY(-2px)}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--rL) var(--rL) 0 0}
+.sc::after{content:'';position:absolute;top:0;right:12px;width:56px;height:56px;border-radius:50%;filter:blur(24px);opacity:.14;pointer-events:none}
+.sc.r::before{background:var(--red)}.sc.r::after{background:var(--red)}
+.sc.a::before{background:var(--amber)}.sc.a::after{background:var(--amber)}
+.sc.g::before{background:var(--green)}.sc.g::after{background:var(--green)}
+.sc.c::before{background:var(--cyan)}.sc.c::after{background:var(--cyan)}
+.sc-lbl{font-size:11px;color:var(--txt3);margin-bottom:10px}
+.sc-val{font-size:34px;font-weight:700;letter-spacing:-.04em;line-height:1;font-family:var(--mono)}
+.sc.r .sc-val{color:var(--red)}.sc.a .sc-val{color:var(--amber)}.sc.g .sc-val{color:var(--green)}.sc.c .sc-val{color:var(--cyan)}
+.sc-trend{font-size:11px;color:var(--txt3);margin-top:8px}
+
+/* FORM */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.fg.f1{grid-template-columns:1fr}
+.flbl{font-size:10px;font-weight:500;color:var(--txt3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}
+input[type=text],input[type=number],select{width:100%;background:var(--bg3);border:1px solid var(--b2);
+  border-radius:var(--r);padding:9px 12px;font-size:13px;color:var(--txt);transition:.15s}
+input:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cD)}
+select option{background:var(--bg3)}
+.sw-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--b)}
+.sw-row:last-of-type{border-bottom:none;padding-bottom:0}
+.sw-info .sw-name{font-size:13px;color:var(--txt)}
+.sw-info .sw-sub{font-size:11px;color:var(--txt3);margin-top:2px}
+.toggle{position:relative;width:38px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;position:absolute;width:0;height:0}
+.t-track{position:absolute;inset:0;background:var(--bg4);border:1px solid var(--b2);border-radius:22px;cursor:pointer;transition:.2s}
+.t-track::before{content:'';position:absolute;height:16px;width:16px;left:2px;top:2px;background:var(--txt3);border-radius:50%;transition:.2s}
+.toggle input:checked+.t-track{background:var(--cyan);border-color:var(--cyan)}
+.toggle input:checked+.t-track::before{transform:translateX(16px);background:var(--bg)}
+
+/* BUTTONS */
+.btn-p{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;
+  background:var(--cyan);color:var(--bg);border-radius:var(--r);font-size:14px;font-weight:600;transition:.15s}
+.btn-p:hover{background:#2de0ff;transform:translateY(-1px);box-shadow:0 8px 24px var(--cG)}
+.btn-p:active{transform:scale(.99)}
+.btn-p.full{width:100%;margin-top:16px}
+.btn-p svg{width:14px;height:14px}
+.btn-g{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:var(--r);
+  font-size:12px;color:var(--txt2);background:transparent;border:1px solid var(--b2);transition:.15s}
+.btn-g:hover{background:var(--bg2);color:var(--txt);border-color:var(--b3)}
+.btn-g svg{width:13px;height:13px}
+.btn-danger{background:var(--rD);border:1px solid var(--rG);color:var(--red);border-radius:var(--r);
+  font-size:13px;font-weight:500;padding:11px 18px;transition:.15s;width:100%;margin-top:8px;display:none}
+.btn-danger:hover{background:rgba(255,63,92,.18)}
+.err-msg{font-size:12px;color:var(--red);background:var(--rD);border:1px solid var(--rG);
+  border-radius:var(--r);padding:10px 14px;margin-top:10px;display:none}
+
+/* PROGRESS */
+.prog-card{background:var(--bg3);border:1px solid var(--b);border-radius:var(--rL);padding:18px 20px;display:none}
+.prog-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.prog-title{font-size:13px;font-weight:500;color:var(--txt)}
+.prog-pct{font-family:var(--mono);font-size:13px;color:var(--cyan)}
+.prog-track{height:5px;background:var(--bg4);border-radius:5px;overflow:hidden;margin-bottom:8px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),#5ce8ff);border-radius:5px;
+  transition:width .5s cubic-bezier(.4,0,.2,1);position:relative;width:0%}
+.prog-fill::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 8px var(--cyan)}
+.prog-stat{font-size:12px;color:var(--txt3)}
+.log-term{margin-top:10px;background:var(--bg);border:1px solid var(--b);border-radius:var(--r);
+  padding:10px 13px;font-family:var(--mono);font-size:11px;line-height:1.9;max-height:140px;overflow-y:auto;color:var(--txt3)}
+.log-ok{color:var(--green)}.log-warn{color:var(--amber)}.log-info{color:var(--cyan)}.log-err{color:var(--red)}
+
+/* CMD BOX */
+.cmd-box{background:var(--bg);border:1px solid var(--b);border-radius:var(--r);padding:13px 15px;position:relative}
+.cmd-box::before{content:'$ ';color:var(--cyan);font-family:var(--mono);font-size:13px}
+.cmd-txt{font-family:var(--mono);font-size:11.5px;color:var(--green);word-break:break-all;line-height:1.7}
+.cmd-copy{position:absolute;right:9px;top:9px;padding:4px 10px;font-size:11px;
+  background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--txt2);transition:.15s}
+.cmd-copy:hover{color:var(--cyan);border-color:var(--cG)}
+
+/* CHART */
+.chart-area{display:flex;align-items:flex-end;gap:8px;height:72px;padding:4px 0}
+.bar{flex:1;border-radius:4px 4px 0 0;min-height:4px;cursor:pointer;transition:.15s}
+.bar:hover{opacity:.8}
+.bar.r{background:linear-gradient(180deg,var(--red),rgba(255,63,92,.35))}
+.bar.a{background:linear-gradient(180deg,var(--amber),rgba(255,176,32,.35))}
+.bar.o{background:linear-gradient(180deg,var(--orange),rgba(255,107,61,.35))}
+.legend{display:flex;gap:14px;margin-top:9px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--txt3)}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* TABLE */
+.sb{display:flex;gap:9px;margin-bottom:12px}
+.si-wrap{flex:1;position:relative;display:flex;align-items:center}
+.si-wrap svg{position:absolute;left:11px;width:14px;height:14px;color:var(--txt3);pointer-events:none}
+.si-wrap input{padding-left:34px;background:var(--bg3);border:1px solid var(--b);width:100%;border-radius:var(--r)}
+.fsel{background:var(--bg3);border:1px solid var(--b);border-radius:var(--r);padding:9px 12px;font-size:13px;color:var(--txt);width:185px}
+.vtbl{width:100%;border-collapse:collapse}
+.vtbl thead th{text-align:left;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--txt3);padding:8px 12px;border-bottom:1px solid var(--b)}
+.vtbl tbody tr{border-bottom:1px solid var(--b);transition:.12s;cursor:pointer}
+.vtbl tbody tr:hover{background:var(--bg3)}
+.vtbl tbody tr:last-child{border-bottom:none}
+.vtbl td{padding:10px 12px;font-size:12px;color:var(--txt2);vertical-align:middle}
+.vtbl td.mono{font-family:var(--mono);letter-spacing:.04em}
+.vtbl td.bold{font-weight:500;color:var(--txt)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;
+  padding:3px 9px;border-radius:999px;white-space:nowrap;letter-spacing:.03em}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+.p-wd{background:var(--rD);color:var(--red);border:1px solid var(--rG)}
+.p-nh{background:var(--aD);color:var(--amber);border:1px solid var(--aG)}
+.p-bt{background:rgba(255,107,61,.1);color:var(--orange);border:1px solid rgba(255,107,61,.2)}
+.conf-bar{display:flex;align-items:center;gap:7px}
+.conf-track{flex:1;height:4px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.conf-fill{height:100%;border-radius:4px}
+.conf-lbl{font-family:var(--mono);font-size:11px;min-width:32px;text-align:right}
+.plate-tag{font-family:var(--mono);font-size:11px;font-weight:500;background:var(--bg4);
+  border:1px solid var(--b2);padding:3px 8px;border-radius:5px;color:var(--txt);letter-spacing:.07em}
+.plate-tag.none{color:var(--txt3);background:transparent;border-color:transparent;font-family:var(--font);font-weight:400}
+.snap-btn{width:30px;height:26px;border-radius:6px;background:var(--bg4);border:1px solid var(--b);
+  display:flex;align-items:center;justify-content:center;transition:.15s;cursor:pointer}
+.snap-btn:hover{border-color:var(--cG)}
+.snap-btn svg{width:13px;height:13px;color:var(--txt3)}
+
+/* PLATES */
+.plate-grid{display:flex;flex-wrap:wrap;gap:8px}
+.pc{font-family:var(--mono);font-size:12px;font-weight:500;padding:7px 14px;
+  background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--txt);
+  cursor:pointer;letter-spacing:.07em;transition:.15s}
+.pc:hover{border-color:var(--cG);color:var(--cyan);background:var(--cD)}
+
+/* REPORTS */
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rc{background:var(--bg3);border:1px solid var(--b);border-radius:var(--r);padding:15px;
+  cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+.rc:hover{border-color:var(--b2);transform:translateY(-1px)}
+.rc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.rc.r1::after{background:var(--red)}.rc.r2::after{background:var(--amber)}
+.rc.r3::after{background:var(--orange)}.rc.r4::after{background:var(--cyan)}
+.rc-icon{font-size:20px;margin-bottom:9px}
+.rc-name{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:3px}
+.rc-file{font-family:var(--mono);font-size:10px;color:var(--txt3);margin-bottom:5px}
+.rc-desc{font-size:11px;color:var(--txt3);line-height:1.55}
+
+/* STRUCTURE */
+.tree{font-family:var(--mono);font-size:12.5px;color:var(--txt3);line-height:2.15;
+  background:var(--bg);border:1px solid var(--b);border-radius:var(--r);padding:16px 18px}
+.tree .D{color:var(--txt);font-weight:500}
+.tree .PY{color:#58a6ff}.tree .PT{color:var(--amber)}.tree .DB{color:var(--red)}
+.tree .CS{color:var(--green)}.tree .MP{color:#c084fc}.tree .CM{color:var(--txt3);font-size:11px}
+.tree .AUTO{font-size:9px;background:var(--bg4);border:1px solid var(--b2);border-radius:4px;
+  padding:1px 5px;color:var(--txt3);vertical-align:middle;margin-left:6px;font-family:var(--font)}
+.fc{display:flex;flex-direction:column;gap:8px}
+.fi{display:flex;gap:13px;align-items:flex-start;padding:12px 14px;background:var(--bg3);border:1px solid var(--b);border-radius:var(--r);transition:.15s}
+.fi:hover{border-color:var(--b2)}
+.fi-file{font-family:var(--mono);font-size:11px;font-weight:500;color:#58a6ff;min-width:108px;padding-top:2px}
+.fi-desc{font-size:12px;color:var(--txt2);line-height:1.65}
+.fi-desc code{font-family:var(--mono);font-size:11px;color:var(--amber);background:var(--bg4);padding:1px 5px;border-radius:4px}
+
+/* SESSIONS */
+.stbl{width:100%;border-collapse:collapse}
+.stbl thead th{text-align:left;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--txt3);padding:8px 14px;border-bottom:1px solid var(--b)}
+.stbl tbody tr{border-bottom:1px solid var(--b);transition:.12s;cursor:pointer}
+.stbl tbody tr:hover{background:var(--bg3)}
+.stbl tbody tr:last-child{border-bottom:none}
+.stbl td{padding:11px 14px;font-size:12px;color:var(--txt2);vertical-align:middle}
+.stbl td.mono{font-family:var(--mono);font-size:11px}
+
+.div{height:1px;background:var(--b);margin:13px 0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.empty{text-align:center;padding:36px 0;color:var(--txt3);font-size:13px}
+
+.toast{position:fixed;bottom:22px;right:22px;z-index:9999;background:var(--bg2);
+  border:1px solid var(--b2);border-radius:var(--r);padding:12px 17px;
+  font-size:13px;color:var(--txt);display:flex;align-items:center;gap:10px;
+  transform:translateY(14px);opacity:0;transition:all .25s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5);min-width:230px}
+.toast.show{transform:translateY(0);opacity:1}
+.t-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm-1 4h2v5h-2zm0 7h2v2h-2z"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">Violation<em>IQ</em></div>
+      <div class="brand-sub">Traffic Enforcement System · By Musaawar Khan</div>
+    </div>
+  </div>
+  <div class="topbar-center">
+    <div class="live-dot off" id="sys-dot"></div>
+    <span id="sys-label">Connecting to server...</span>
+  </div>
+  <div class="tb-actions">
+    <button class="tb-btn" onclick="refreshAll()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+      Refresh
+    </button>
+    <div class="avatar">MK</div>
+  </div>
+</header>
+
+<nav class="sidebar">
+  <div class="sg-label">Detection</div>
+  <div class="nav-item active" onclick="goto('run',this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21"/></svg>
+    Run pipeline
+  </div>
+  <div class="nav-item" onclick="goto('violations',this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Violations
+    <span class="nb nb-r" id="vbadge">0</span>
+  </div>
+  <div class="nav-item" onclick="goto('plates',this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+    Plate lookup
+  </div>
+  <div class="sg-label">Output</div>
+  <div class="nav-item" onclick="goto('reports',this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Export reports
+  </div>
+  <div class="nav-item" onclick="goto('structure',this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+    Project structure
+  </div>
+  <div class="sg-label">History</div>
+  <div class="nav-item" onclick="goto('sessions',this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Sessions
+    <span class="nb nb-g" id="sess-badge">0</span>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sys-card">
+      <div class="sys-row"><span>motorcycle_best.pt</span><div class="sys-dot err" id="dot-moto"></div></div>
+      <div class="sys-row"><span>plate_best.pt</span><div class="sys-dot err" id="dot-plate"></div></div>
+      <div class="sys-row"><span>violations.db</span><div class="sys-dot err" id="dot-db"></div></div>
+    </div>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- RUN PAGE -->
+  <div class="page active" id="page-run">
+    <div class="ph">
+      <div><div class="ph-title">Run <em>Pipeline</em></div>
+        <div class="ph-sub">Configure and launch the violation detection engine</div></div>
+      <div class="ph-actions">
+        <button class="btn-g" onclick="refreshAll()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          Refresh data
+        </button>
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sc r"><div class="sc-lbl">Wrong direction</div><div class="sc-val" id="s-wd">—</div><div class="sc-trend">live from database</div></div>
+      <div class="sc a"><div class="sc-lbl">No helmet</div><div class="sc-val" id="s-nh">—</div><div class="sc-trend">live from database</div></div>
+      <div class="sc r"><div class="sc-lbl">Both violations</div><div class="sc-val" id="s-bt">—</div><div class="sc-trend">live from database</div></div>
+      <div class="sc c"><div class="sc-lbl">Plates read</div><div class="sc-val" id="s-pl">—</div><div class="sc-trend">live from database</div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ct">Detection settings</div>
+        <div class="fg f1"><div><div class="flbl">Video file path</div>
+          <input type="text" id="video-path" value="traffic.mp4" placeholder="e.g. C:/videos/traffic.mp4"/></div></div>
+        <div class="fg">
+          <div><div class="flbl">Legal direction</div>
+            <select id="dir"><option value="right">Right — left → right</option><option value="left">Left — right → left</option></select></div>
+          <div><div class="flbl">Confidence</div><input type="number" id="conf" value="0.35" step="0.05" min="0.1" max="0.95"/></div>
+        </div>
+        <div class="fg">
+          <div><div class="flbl">Frame skip</div><input type="number" id="skip" value="1" min="1" max="10"/></div>
+          <div><div class="flbl">IoU threshold</div><input type="number" id="iou" value="0.45" step="0.05" min="0.1" max="0.95"/></div>
+        </div>
+        <div class="fg">
+          <div><div class="flbl">Motorcycle model</div><input type="text" id="moto-model" value="models/motorcycle_best.pt"/></div>
+          <div><div class="flbl">Plate model</div><input type="text" id="plate-model" value="models/plate_best.pt"/></div>
+        </div>
+        <div class="div"></div>
+        <div class="sw-row">
+          <div class="sw-info"><div class="sw-name">Enable EasyOCR</div><div class="sw-sub">Read licence plate text — slower but complete</div></div>
+          <label class="toggle"><input type="checkbox" id="ocr" checked/><span class="t-track"></span></label>
+        </div>
+        <div class="sw-row">
+          <div class="sw-info"><div class="sw-name">Live preview window</div><div class="sw-sub">Show annotated frames — press Q to stop</div></div>
+          <label class="toggle"><input type="checkbox" id="prev"/><span class="t-track"></span></label>
+        </div>
+        <button class="btn-p full" id="run-btn" onclick="startPipeline()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>
+          Start detection pipeline
+        </button>
+        <button class="btn-danger" id="stop-btn" onclick="stopPipeline()">■ Stop pipeline</button>
+        <div class="err-msg" id="run-err"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card">
+          <div class="ct">Violation breakdown</div>
+          <div class="chart-area" id="chart-bars"><div style="font-size:12px;color:var(--txt3);padding:16px 0">Run pipeline to see data</div></div>
+          <div class="legend" id="chart-legend"></div>
+        </div>
+        <div class="card">
+          <div class="ct">Terminal command</div>
+          <div class="cmd-box">
+            <span class="cmd-txt" id="cmd-txt">python pipeline.py --video traffic.mp4 --dir right --conf 0.35 --iou 0.45 --skip 1</span>
+            <button class="cmd-copy" onclick="copyCmd()">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="prog-card" id="prog-card">
+      <div class="prog-header">
+        <div class="prog-title">Processing video...</div>
+        <div class="prog-pct" id="prog-pct">0%</div>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+      <div class="prog-stat" id="prog-stat">Initialising...</div>
+      <div class="log-term" id="log-box"></div>
+    </div>
+  </div>
+
+  <!-- VIOLATIONS PAGE -->
+  <div class="page" id="page-violations">
+    <div class="ph">
+      <div><div class="ph-title">Violation <em>Records</em></div>
+        <div class="ph-sub">All flagged incidents — one record per vehicle per violation type</div></div>
+      <div class="ph-actions">
+        <button class="btn-g" onclick="exportReports()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sb">
+        <div class="si-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="vsearch" placeholder="Search plate, track ID, time..." oninput="filterViolations()"/>
+        </div>
+        <select class="fsel" id="vftype" onchange="filterViolations()">
+          <option value="">All violation types</option>
+          <option value="WRONG_DIRECTION">Wrong direction</option>
+          <option value="NO_HELMET">No helmet</option>
+          <option value="BOTH">Both violations</option>
+        </select>
+      </div>
+      <table class="vtbl">
+        <thead><tr><th>Type</th><th>Track ID</th><th>Plate</th><th>Time (s)</th><th>Frame</th><th>Confidence</th><th>Snap</th></tr></thead>
+        <tbody id="vtbl-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PLATES PAGE -->
+  <div class="page" id="page-plates">
+    <div class="ph"><div><div class="ph-title">Plate <em>Lookup</em></div>
+      <div class="ph-sub">Search all detected licence plates</div></div></div>
+    <div class="card">
+      <div class="ct">Search plate</div>
+      <div style="display:flex;gap:10px">
+        <div class="si-wrap" style="flex:1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="plate-q" placeholder="Enter plate number e.g. LEA-4821" onkeydown="if(event.key==='Enter')lookupPlate()"/>
+        </div>
+        <button class="btn-p" onclick="lookupPlate()">Search</button>
+      </div>
+      <div id="plate-results" style="margin-top:14px"></div>
+    </div>
+    <div class="card">
+      <div class="ct">All detected plates</div>
+      <div class="plate-grid" id="all-plates"><div class="empty">No plates detected yet</div></div>
+    </div>
+  </div>
+
+  <!-- REPORTS PAGE -->
+  <div class="page" id="page-reports">
+    <div class="ph">
+      <div><div class="ph-title">Export <em>Reports</em></div>
+        <div class="ph-sub">Download CSV files from the database</div></div>
+      <div class="ph-actions">
+        <button class="btn-p" onclick="exportReports()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Export all CSVs
+        </button>
+      </div>
+    </div>
+    <div class="rg">
+      <div class="rc r1"><div class="rc-icon">↔</div><div class="rc-name">Wrong direction</div><div class="rc-file">wrong_direction.csv</div><div class="rc-desc">Frame, track ID, direction, plate, snapshot, confidence</div></div>
+      <div class="rc r2"><div class="rc-icon">⬡</div><div class="rc-name">No helmet</div><div class="rc-file">no_helmet.csv</div><div class="rc-desc">Frame, track ID, helmet status, plate, snapshot, confidence</div></div>
+      <div class="rc r3"><div class="rc-icon">⚠</div><div class="rc-name">Both violations</div><div class="rc-file">both_flags.csv</div><div class="rc-desc">Direction + helmet combined — worst-case offenders</div></div>
+      <div class="rc r4"><div class="rc-icon">◈</div><div class="rc-name">All violations</div><div class="rc-file">all_violations.csv</div><div class="rc-desc">Master log — every field, every flag, bbox coordinates</div></div>
+    </div>
+    <div class="card"><div class="ct">Terminal commands</div>
+      <div class="cmd-box"><span class="cmd-txt" style="display:block;line-height:2.3">
+python report.py<br>python report.py --session SESSION_ID<br>python report.py --all<br>python report.py --plate ABC123<br>python report.py --list</span></div>
+    </div>
+    <div class="card"><div class="ct">Export status</div>
+      <div id="export-status" class="empty">Click "Export all CSVs" to generate report files</div>
+    </div>
+  </div>
+
+  <!-- STRUCTURE PAGE -->
+  <div class="page" id="page-structure">
+    <div class="ph"><div><div class="ph-title">Project <em>Structure</em></div>
+      <div class="ph-sub">Folder layout and how every file connects</div></div></div>
+    <div class="g2">
+      <div class="card"><div class="ct">Folder layout</div>
+        <div class="tree">
+<span class="D">your_project/</span>
+├── <span class="PY">app.py</span>              <span class="CM"># Flask API server ← NEW</span>
+├── <span class="PY">pipeline.py</span>         <span class="CM"># detection engine</span>
+├── <span class="PY">database.py</span>         <span class="CM"># SQLite store</span>
+├── <span class="PY">report.py</span>           <span class="CM"># CSV exporter</span>
+├── dashboard.html        <span class="CM"># this UI</span>
+├── requirements.txt
+├── requirements_web.txt  <span class="CM"># flask + flask-cors</span>
+│
+├── <span class="D">models/</span>
+│   ├── <span class="PT">motorcycle_best.pt</span>
+│   └── <span class="PT">plate_best.pt</span>
+│
+└── <span class="D">output/</span> <span class="AUTO">auto-created</span>
+    ├── <span class="DB">violations.db</span>
+    ├── <span class="D">snapshots/</span>
+    └── <span class="D">reports/</span>
+        └── <span class="D">&lt;session_id&gt;/</span>
+            ├── <span class="CS">wrong_direction.csv</span>
+            ├── <span class="CS">no_helmet.csv</span>
+            ├── <span class="CS">both_flags.csv</span>
+            └── <span class="CS">all_violations.csv</span></div>
+      </div>
+      <div class="card"><div class="ct">How files connect</div>
+        <div class="fc">
+          <div class="fi"><div class="fi-file">app.py</div>
+            <div class="fi-desc">Flask server. Serves <code>dashboard.html</code>, exposes <code>/api/*</code> endpoints, runs <code>pipeline.py</code> as subprocess with live log streaming to the UI.</div></div>
+          <div class="fi"><div class="fi-file">dashboard.html</div>
+            <div class="fi-desc">This UI. Polls <code>/api/pipeline/status</code> every 1.5 s during a run. Reads violations, plates, sessions live from <code>/api/*</code>.</div></div>
+          <div class="fi"><div class="fi-file">pipeline.py</div>
+            <div class="fi-desc">Loads YOLO models, tracks motorcycles, calls <code>database.py</code> to store each violation exactly once, writes live CSVs via <code>report.py</code>.</div></div>
+          <div class="fi"><div class="fi-file">database.py</div>
+            <div class="fi-desc"><code>UNIQUE(session, track_id, violation_type)</code> + <code>INSERT OR IGNORE</code> guarantees no duplicate rows ever exist.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="ct">Quick start — 3 commands</div>
+      <div class="cmd-box"><span class="cmd-txt" style="display:block;line-height:2.6">
+pip install -r requirements.txt<br>
+pip install -r requirements_web.txt<br>
+python app.py<br>
+<span style="color:var(--cyan)"># Then open:  http://127.0.0.1:5000</span></span></div>
+    </div>
+  </div>
+
+  <!-- SESSIONS PAGE -->
+  <div class="page" id="page-sessions">
+    <div class="ph"><div><div class="ph-title">Session <em>History</em></div>
+      <div class="ph-sub">All past detection runs stored in violations.db</div></div></div>
+    <div class="card">
+      <table class="stbl">
+        <thead><tr><th>Session ID</th><th>Video</th><th>Started</th><th>Flags</th><th>Status</th></tr></thead>
+        <tbody id="sess-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<div class="toast" id="toast"><div class="t-dot" id="t-dot"></div><span id="t-msg"></span></div>
+
+<script>
+const API = window.location.origin + '/api';
+let ALL_VIOLS = [];
+let pollTimer = null;
+let lastLogLen = 0;
+
+/* NAV */
+function goto(name, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+/* SYSTEM CHECK */
+async function checkSystem(){
+  try{
+    const d = await fetch(`${API}/system`).then(r=>r.json());
+    const setDot=(id,ok)=>{ document.getElementById(id).className='sys-dot '+(ok?'ok':'err'); };
+    setDot('dot-moto',  d.moto_model_exists);
+    setDot('dot-plate', d.plate_model_exists);
+    setDot('dot-db',    d.db_exists);
+    const ok = d.moto_model_exists && d.plate_model_exists;
+    document.getElementById('sys-dot').className = 'live-dot '+(ok?'on':'off');
+    document.getElementById('sys-label').textContent = ok ? 'System ready — models loaded' : 'Warning: model files missing';
+  }catch{
+    document.getElementById('sys-dot').className='live-dot off';
+    document.getElementById('sys-label').textContent='Cannot reach server — is app.py running?';
+  }
+}
+
+/* CMD BUILDER */
+function buildCmd(){
+  const v=document.getElementById('video-path').value||'traffic.mp4';
+  const d=document.getElementById('dir').value;
+  const c=document.getElementById('conf').value;
+  const iou=document.getElementById('iou').value;
+  const s=document.getElementById('skip').value;
+  const noOcr=!document.getElementById('ocr').checked;
+  const prev=document.getElementById('prev').checked;
+  let cmd=`python pipeline.py --video ${v} --dir ${d} --conf ${c} --iou ${iou} --skip ${s}`;
+  if(noOcr) cmd+=' --no-ocr';
+  if(prev)  cmd+=' --preview';
+  document.getElementById('cmd-txt').textContent=cmd;
+}
+['video-path','dir','conf','iou','skip','ocr','prev'].forEach(id=>{
+  const el=document.getElementById(id); if(!el) return;
+  el.addEventListener('change',buildCmd);
+  if(el.tagName==='INPUT'&&el.type!=='checkbox') el.addEventListener('input',buildCmd);
+});
+function copyCmd(){ navigator.clipboard.writeText(document.getElementById('cmd-txt').textContent.trim()).then(()=>toast('Command copied!','var(--cyan)')); }
+
+/* PIPELINE */
+async function startPipeline(){
+  const errEl=document.getElementById('run-err');
+  errEl.style.display='none';
+  const body={
+    video:      document.getElementById('video-path').value.trim(),
+    dir:        document.getElementById('dir').value,
+    conf:       parseFloat(document.getElementById('conf').value),
+    iou:        parseFloat(document.getElementById('iou').value),
+    skip:       parseInt(document.getElementById('skip').value),
+    ocr:        document.getElementById('ocr').checked,
+    preview:    document.getElementById('prev').checked,
+    moto_model: document.getElementById('moto-model').value.trim(),
+    plate_model:document.getElementById('plate-model').value.trim(),
+  };
+  try{
+    const r=await fetch(`${API}/pipeline/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok){ errEl.textContent=d.error||'Failed to start'; errEl.style.display='block'; return; }
+    document.getElementById('prog-card').style.display='block';
+    document.getElementById('run-btn').style.display='none';
+    document.getElementById('stop-btn').style.display='block';
+    document.getElementById('log-box').innerHTML='';
+    lastLogLen=0;
+    pollTimer=setInterval(pollStatus,1500);
+    toast('Pipeline started!','var(--cyan)');
+  }catch{
+    errEl.textContent='Cannot reach server. Is app.py running?'; errEl.style.display='block';
+  }
+}
+
+async function stopPipeline(){
+  await fetch(`${API}/pipeline/stop`,{method:'POST'});
+  toast('Stop signal sent','var(--amber)');
+}
+
+async function pollStatus(){
+  try{
+    const d=await fetch(`${API}/pipeline/status`).then(r=>r.json());
+    document.getElementById('prog-fill').style.width=d.progress+'%';
+    document.getElementById('prog-pct').textContent=d.progress+'%';
+    document.getElementById('prog-stat').textContent=d.status;
+    const log=document.getElementById('log-box');
+    if(d.log.length>lastLogLen){
+      d.log.slice(lastLogLen).forEach(line=>{
+        const div=document.createElement('div');
+        const lc=line.toLowerCase();
+        if(lc.includes('error')||lc.includes('failed'))              div.className='log-err';
+        else if(lc.includes('%]')||lc.includes('warn'))              div.className='log-warn';
+        else if(lc.includes('loading')||lc.includes('initialising')||lc.includes('opening')) div.className='log-info';
+        else if(lc.includes('complete')||lc.includes('done'))        div.className='log-ok';
+        div.textContent=line; log.appendChild(div);
+      });
+      log.scrollTop=log.scrollHeight;
+      lastLogLen=d.log.length;
+    }
+    if(!d.running){
+      clearInterval(pollTimer); pollTimer=null;
+      document.getElementById('run-btn').style.display='flex';
+      document.getElementById('stop-btn').style.display='none';
+      if(d.progress===100){ toast('Pipeline complete!','var(--green)'); await refreshAll(); }
+    }
+  }catch{}
+}
+
+/* LOAD DATA */
+async function loadSummary(){
+  try{
+    const d=await fetch(`${API}/violations/summary`).then(r=>r.json());
+    document.getElementById('s-wd').textContent=d.WRONG_DIRECTION;
+    document.getElementById('s-nh').textContent=d.NO_HELMET;
+    document.getElementById('s-bt').textContent=d.BOTH;
+    document.getElementById('vbadge').textContent=d.TOTAL;
+    const plates=await fetch(`${API}/plates/all`).then(r=>r.json());
+    document.getElementById('s-pl').textContent=plates.length;
+    return d;
+  }catch{ return {}; }
+}
+
+async function loadViolations(){
+  try{
+    ALL_VIOLS=await fetch(`${API}/violations`).then(r=>r.json());
+    renderViolations(ALL_VIOLS);
+  }catch{ renderViolations([]); }
+}
+
+async function loadPlates(){
+  try{
+    const plates=await fetch(`${API}/plates/all`).then(r=>r.json());
+    const el=document.getElementById('all-plates');
+    if(!plates.length){ el.innerHTML='<div class="empty">No plates detected yet</div>'; return; }
+    el.innerHTML=plates.map(p=>`<div class="pc" onclick="document.getElementById('plate-q').value='${p}';lookupPlate()">${p}</div>`).join('');
+  }catch{}
+}
+
+async function loadSessions(){
+  try{
+    const sessions=await fetch(`${API}/sessions`).then(r=>r.json());
+    document.getElementById('sess-badge').textContent=sessions.length;
+    const tbody=document.getElementById('sess-body');
+    if(!sessions.length){ tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--txt3)">No sessions yet</td></tr>'; return; }
+    tbody.innerHTML=sessions.map(s=>`<tr>
+      <td class="mono">${s.session_id||'—'}</td>
+      <td>${s.video_source||'—'}</td>
+      <td class="mono">${s.started_at||'—'}</td>
+      <td><span class="nb ${(s.total_violations||0)>8?'nb-r':'nb-g'}">${s.total_violations||0}</span></td>
+      <td><span class="nb nb-g">${s.ended_at?'Complete':'Active'}</span></td>
+    </tr>`).join('');
+  }catch{}
+}
+
+/* CHART */
+async function renderChart(){
+  try{
+    const d=await fetch(`${API}/violations/summary`).then(r=>r.json());
+    const wd=d.WRONG_DIRECTION||0,nh=d.NO_HELMET||0,bt=d.BOTH||0;
+    const mx=Math.max(wd,nh,bt,1);
+    if(!wd&&!nh&&!bt){ document.getElementById('chart-bars').innerHTML='<div style="font-size:12px;color:var(--txt3);padding:16px 0">No violations recorded yet</div>'; document.getElementById('chart-legend').innerHTML=''; return; }
+    document.getElementById('chart-bars').innerHTML=[{v:wd,c:'r'},{v:nh,c:'a'},{v:bt,c:'o'}]
+      .map(({v,c})=>`<div class="bar ${c}" style="height:${Math.round(v/mx*68)}px" title="${v}"></div>`).join('');
+    document.getElementById('chart-legend').innerHTML=[
+      {l:'Wrong direction',v:wd,c:'var(--red)'},{l:'No helmet',v:nh,c:'var(--amber)'},{l:'Both',v:bt,c:'var(--orange)'}
+    ].map(({l,v,c})=>`<div class="leg-item"><div class="leg-dot" style="background:${c}"></div>${l} <strong style="color:var(--txt);font-family:var(--mono);margin-left:4px">${v}</strong></div>`).join('');
+  }catch{}
+}
+
+/* VIOLATIONS TABLE */
+function pillHtml(v){
+  const m={WRONG_DIRECTION:['p-wd','Wrong dir'],NO_HELMET:['p-nh','No helmet'],BOTH:['p-bt','Both']};
+  const [cls,lbl]=m[v]||['p-wd',v];
+  return `<span class="pill ${cls}">${lbl}</span>`;
+}
+function confColor(c){ return c>=.9?'var(--green)':c>=.8?'var(--cyan)':c>=.7?'var(--amber)':'var(--red)'; }
+
+function renderViolations(list){
+  const tbody=document.getElementById('vtbl-body');
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--txt3)">No violations recorded yet — run the pipeline first</td></tr>'; return; }
+  tbody.innerHTML=list.map(v=>{
+    const c=Math.round((v.confidence||0)*100);
+    const plate=v.plate_text?`<span class="plate-tag">${v.plate_text}</span>`:`<span class="plate-tag none">—</span>`;
+    const snapFile=(v.snapshot_path||'').split(/[/\\]/).pop();
+    const snapBtn=`<button class="snap-btn" ${snapFile?`onclick="window.open('/api/snapshots/${snapFile}')"`:''} title="${snapFile||'No snapshot'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 016 0v2"/></svg></button>`;
+    return `<tr><td>${pillHtml(v.violation_type)}</td><td class="mono bold">#${v.track_id}</td><td>${plate}</td>
+      <td class="mono">${v.frame_time_sec??'—'}s</td><td class="mono">${v.frame_number??'—'}</td>
+      <td><div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:${c}%;background:${confColor(v.confidence||0)}"></div></div><span class="conf-lbl" style="color:${confColor(v.confidence||0)}">${c}%</span></div></td>
+      <td>${snapBtn}</td></tr>`;
+  }).join('');
+}
+
+function filterViolations(){
+  const q=document.getElementById('vsearch').value.toLowerCase();
+  const t=document.getElementById('vftype').value;
+  renderViolations(ALL_VIOLS.filter(v=>{
+    const mq=!q||(v.plate_text||'').toLowerCase().includes(q)||String(v.track_id).includes(q)||String(v.frame_time_sec).includes(q);
+    return mq&&(!t||v.violation_type===t);
+  }));
+}
+
+/* PLATE LOOKUP */
+async function lookupPlate(){
+  const q=document.getElementById('plate-q').value.trim();
+  const el=document.getElementById('plate-results');
+  if(!q){ el.innerHTML=''; return; }
+  try{
+    const rows=await fetch(`${API}/plates/search?q=${encodeURIComponent(q)}`).then(r=>r.json());
+    if(!rows.length){ el.innerHTML=`<div class="empty">No violations found for "${q}"</div>`; return; }
+    el.innerHTML='<table class="vtbl"><thead><tr><th>Type</th><th>Plate</th><th>Track</th><th>Time</th><th>Frame</th></tr></thead><tbody>'
+      +rows.map(v=>`<tr><td>${pillHtml(v.violation_type)}</td><td><span class="plate-tag">${v.plate_text}</span></td><td class="mono">#${v.track_id}</td><td class="mono">${v.frame_time_sec}s</td><td class="mono">${v.frame_number}</td></tr>`).join('')+'</tbody></table>';
+  }catch{ el.innerHTML='<div class="empty">Error reaching server</div>'; }
+}
+
+/* EXPORT */
+async function exportReports(){
+  toast('Generating CSV files...','var(--cyan)');
+  try{
+    const d=await fetch(`${API}/reports/export`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})}).then(r=>r.json());
+    const el=document.getElementById('export-status');
+    el.innerHTML=Object.entries(d.files||{}).map(([k,f])=>
+      `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b);font-size:12px">
+        <span style="color:var(--txt2)">${k}</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--green)">${f.split(/[/\\]/).pop()} (${d.counts[k]} rows)</span>
+       </div>`).join('');
+    toast('CSVs exported to output/reports/','var(--green)');
+  }catch{ toast('Cannot reach server','var(--red)'); }
+}
+
+/* TOAST */
+let toastTimer;
+function toast(msg,color='var(--cyan)'){
+  clearTimeout(toastTimer);
+  document.getElementById('t-msg').textContent=msg;
+  document.getElementById('t-dot').style.background=color;
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* REFRESH ALL */
+async function refreshAll(){
+  await checkSystem();
+  await loadSummary();
+  await loadViolations();
+  await loadPlates();
+  await loadSessions();
+  await renderChart();
+}
+
+// 🔥 AUTO LIVE REFRESH (EVERY 2 SECONDS)
+setInterval(async () => {
+  try {
+    await loadSummary();
+    await loadViolations();
+    await loadPlates();
+    await loadSessions();
+    await renderChart();
+  } catch (e) {
+    console.log("Auto refresh error:", e);
+  }
+}, 2000);
+
+// 🚀 INITIAL LOAD WHEN PAGE OPENS
+async function init(){
+  await checkSystem();
+  await loadSummary();
+  await loadViolations();
+  await loadPlates();
+  await loadSessions();
+  await renderChart();
+}
+
+// Run when page loads
+init();
+
+/* INIT */
+(async()=>{ await refreshAll(); })();
+</script>
+</body>
+</html>
