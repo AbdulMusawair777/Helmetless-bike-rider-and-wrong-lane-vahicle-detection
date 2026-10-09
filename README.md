@@ -2,8 +2,8 @@
 
 > **AI-powered real-time traffic violation monitoring — Wrong Direction Detection · Helmetless Rider Detection · License Plate Recognition · SMS & Email Alerts**
 
-**By Musaawar Khan** | Final Year Project | UET Peshawar — Department of Data Science
-Supervised by **Dr. Imran Khalil** | Group Partner: **Haseeb Aman (22PWDSC0060)**
+**By Abdul Musawair Khan** | Final Year Project | UET Peshawar — Department of Data Science
+Supervised by **Dr. Imran Khalil**
 
 ---
 
@@ -657,4 +657,4 @@ This project is developed for academic purposes as a Final Year Project at **UET
 
 ---
 
-*Vehicle Violation Detection System · By Musaawar Khan · UET Peshawar*
+*Vehicle Violation Detection System · By Abdul Musawair Khan · UET Peshawar*
